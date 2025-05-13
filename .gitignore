@@ -1,0 +1,20 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environment
+venv/
+.env
+
+# Flask-specific
+instance/
+*.db
+*.sqlite3
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Exclude all models and encoders
+model/
