@@ -18,3 +18,5 @@ Thumbs.db
 
 # Exclude all models and encoders
 model/
+
+.idea
