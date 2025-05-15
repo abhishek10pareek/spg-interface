@@ -2,16 +2,33 @@ from flask import Flask, render_template, request, jsonify
 import pickle
 import numpy as np
 import re
+import os, dotenv, requests
 
 app = Flask(__name__)
 
-# Load model and encoders
+MODEL_PATH = "model/RandomForestClassifier.pickle"
+SPACEGROUP_ENCODER_PATH = "model/spacegroup_encoder.pickle"
+ELEMENTS_ENCODER_PATH = "model/elements_encoder.pickle"
+
+
+def download_if_needed(url, path):
+    if not os.path.exists(path):
+        r = requests.get(url)
+        with open(path, 'wb') as f:
+            f.write(r.content)
+
+
+download_if_needed(os.getenv("MODEL_URL"), MODEL_PATH)
+download_if_needed(os.getenv("SPACEGROUP_ENCODER_URL"), SPACEGROUP_ENCODER_PATH)
+download_if_needed(os.getenv("ELEMENT_ENCODER_URL"), ELEMENTS_ENCODER_PATH)
+
 with open('model/RandomForestClassifier.pickle', 'rb') as f:
     model = pickle.load(f)
 with open('model/spacegroup_encoder.pickle', 'rb') as f:
     spacegroup_encoder = pickle.load(f)
 with open('model/elements_encoder.pickle', 'rb') as f:
     element_encoder = pickle.load(f)
+
 
 def featurize(formula, a, b, c, alpha, beta, gamma):
     List = [a, b, c, alpha, beta, gamma]
@@ -29,9 +46,11 @@ def featurize(formula, a, b, c, alpha, beta, gamma):
     input_data = np.array(List).reshape(1, -1)
     return input_data
 
+
 @app.route('/')
 def index():
     return render_template('index.html')
+
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -57,6 +76,7 @@ def predict():
                for sg, p in zip(top3_spacegroups, top3_probs)]
 
     return jsonify({"top_3": results})
+
 
 if __name__ == '__main__':
     app.run(debug=True)
