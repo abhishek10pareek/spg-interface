@@ -4,13 +4,15 @@ import numpy as np
 import re
 import os
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()  # load env vars from .env
 
 app = Flask(__name__)
 
 MODEL_PATH = "model/RandomForestClassifier.pickle"
 SPACEGROUP_ENCODER_PATH = "model/spacegroup_encoder.pickle"
 ELEMENTS_ENCODER_PATH = "model/elements_encoder.pickle"
-
 
 def download_file_from_google_drive(file_id, destination):
     URL = "https://docs.google.com/uc?export=download"
@@ -25,55 +27,35 @@ def download_file_from_google_drive(file_id, destination):
 
     save_response_content(response, destination)
 
-
 def get_confirm_token(response):
     for key, value in response.cookies.items():
         if key.startswith('download_warning'):
             return value
     return None
 
-
-def save_response_content(response, destination):
-    CHUNK_SIZE = 32768
-    os.makedirs(os.path.dirname(destination), exist_ok=True)
+def save_response_content(response, destination, chunk_size=32768):
     with open(destination, "wb") as f:
-        for chunk in response.iter_content(CHUNK_SIZE):
+        for chunk in response.iter_content(chunk_size):
             if chunk:
                 f.write(chunk)
 
-
-def extract_file_id_from_url(url):
-    import re
-    m = re.search(r'/d/([a-zA-Z0-9_-]+)', url)
-    if m:
-        return m.group(1)
-    m = re.search(r'id=([a-zA-Z0-9_-]+)', url)
-    if m:
-        return m.group(1)
-    raise ValueError(f"Could not extract file ID from URL: {url}")
-
-
-def download_if_needed(url, path):
+def download_if_needed(file_id, path):
     if not os.path.exists(path):
-        if url is None:
-            raise ValueError(f"URL for {path} is None, please set the environment variable properly.")
-        file_id = extract_file_id_from_url(url)
         print(f"Downloading {path} from Google Drive file ID: {file_id}")
         download_file_from_google_drive(file_id, path)
 
+# Download model and encoders if missing
+download_if_needed(os.getenv("MODEL_FILE_ID"), MODEL_PATH)
+download_if_needed(os.getenv("SPACEGROUP_ENCODER_FILE_ID"), SPACEGROUP_ENCODER_PATH)
+download_if_needed(os.getenv("ELEMENT_ENCODER_FILE_ID"), ELEMENTS_ENCODER_PATH)
 
-
-download_if_needed(os.getenv("MODEL_URL"), MODEL_PATH)
-download_if_needed(os.getenv("SPACEGROUP_ENCODER_URL"), SPACEGROUP_ENCODER_PATH)
-download_if_needed(os.getenv("ELEMENTS_ENCODER_URL"), ELEMENTS_ENCODER_PATH)
-
+# Load model and encoders
 with open(MODEL_PATH, 'rb') as f:
     model = pickle.load(f)
 with open(SPACEGROUP_ENCODER_PATH, 'rb') as f:
     spacegroup_encoder = pickle.load(f)
 with open(ELEMENTS_ENCODER_PATH, 'rb') as f:
-    elements_encoder = pickle.load(f)
-
+    element_encoder = pickle.load(f)
 
 def featurize(formula, a, b, c, alpha, beta, gamma):
     List = [a, b, c, alpha, beta, gamma]
@@ -83,19 +65,17 @@ def featurize(formula, a, b, c, alpha, beta, gamma):
             count = 1
         else:
             count = int(count)
-        List.extend([1 + elements_encoder.transform([name])[0], count])
+        List.extend([1 + element_encoder.transform([name])[0], count])
 
-    while len(List) < 52:  # Adjust based on model training
+    while len(List) < 52:  # adjust if needed based on your training
         List.append(0)
 
     input_data = np.array(List).reshape(1, -1)
     return input_data
 
-
 @app.route('/')
 def index():
     return render_template('index.html')
-
 
 @app.route('/predict', methods=['POST'])
 def predict():
@@ -111,6 +91,7 @@ def predict():
     features = featurize(formula, a, b, c, alpha, beta, gamma)
     probs = model.predict_proba(features)[0]
 
+    # Get top-3 indices
     top3_indices = np.argsort(probs)[-3:][::-1]
     top3_spacegroups = spacegroup_encoder.inverse_transform(top3_indices)
     top3_probs = probs[top3_indices]
@@ -119,7 +100,6 @@ def predict():
                for sg, p in zip(top3_spacegroups, top3_probs)]
 
     return jsonify({"top_3": results})
-
 
 if __name__ == '__main__':
     app.run(debug=True)
