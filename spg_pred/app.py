@@ -65,14 +65,14 @@ def download_if_needed(url, path):
 
 download_if_needed(os.getenv("MODEL_URL"), MODEL_PATH)
 download_if_needed(os.getenv("SPACEGROUP_ENCODER_URL"), SPACEGROUP_ENCODER_PATH)
-download_if_needed(os.getenv("ELEMENT_ENCODER_URL"), ELEMENTS_ENCODER_PATH)
+download_if_needed(os.getenv("ELEMENTS_ENCODER_URL"), ELEMENTS_ENCODER_PATH)
 
 with open(MODEL_PATH, 'rb') as f:
     model = pickle.load(f)
 with open(SPACEGROUP_ENCODER_PATH, 'rb') as f:
     spacegroup_encoder = pickle.load(f)
 with open(ELEMENTS_ENCODER_PATH, 'rb') as f:
-    element_encoder = pickle.load(f)
+    elements_encoder = pickle.load(f)
 
 
 def featurize(formula, a, b, c, alpha, beta, gamma):
@@ -83,7 +83,7 @@ def featurize(formula, a, b, c, alpha, beta, gamma):
             count = 1
         else:
             count = int(count)
-        List.extend([1 + element_encoder.transform([name])[0], count])
+        List.extend([1 + elements_encoder.transform([name])[0], count])
 
     while len(List) < 52:  # Adjust based on model training
         List.append(0)
