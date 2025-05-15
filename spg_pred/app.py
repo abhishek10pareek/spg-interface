@@ -31,7 +31,7 @@ def download_if_needed(url, path):
 
 download_if_needed(os.getenv("MODEL_URL"), MODEL_PATH)
 download_if_needed(os.getenv("SPACEGROUP_ENCODER_URL"), SPACEGROUP_ENCODER_PATH)
-download_if_needed(os.getenv("ELEMENT_ENCODER_URL"), ELEMENTS_ENCODER_PATH)
+download_if_needed(os.getenv("ELEMENTS_ENCODER_URL"), ELEMENTS_ENCODER_PATH)
 
 
 with open(MODEL_PATH, 'rb') as f:
