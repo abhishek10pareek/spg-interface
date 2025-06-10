@@ -3,14 +3,15 @@ import pickle
 import numpy as np
 import re
 import os, dotenv
+import xgboost
 
 app = Flask(__name__)
 
-with open('model/RandomForestClassifier.pickle', 'rb') as f:
+with open('spg_pred/model/RandomForestClassifier.pickle', 'rb') as f:
     model = pickle.load(f)
-with open('model/spacegroup_encoder.pickle', 'rb') as f:
+with open('spg_pred/model/spacegroup_encoder.pickle', 'rb') as f:
     spacegroup_encoder = pickle.load(f)
-with open('model/elements_encoder.pickle', 'rb') as f:
+with open('spg_pred/model/elements_encoder.pickle', 'rb') as f:
     element_encoder = pickle.load(f)
 
 
