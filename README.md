@@ -1,3 +1,3 @@
 SPG predictor
 
-will add details later
+Install the dependencies
